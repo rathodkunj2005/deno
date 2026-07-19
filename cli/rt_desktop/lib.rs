@@ -377,7 +377,7 @@ impl denort::desktop::DesktopApi for WefDesktopApi {
       let window = laufey::Window::new(1200, 800);
       window.set_title("Deno Desktop DevTools");
       window.navigate(&url);
-      let window = self.setup_window_events(window);
+      let window = self.setup_window_events(window, false);
       let id = window.id();
       // Track for HMR reload + the singleton check above.
       self.open_windows.lock().unwrap().insert(id);
