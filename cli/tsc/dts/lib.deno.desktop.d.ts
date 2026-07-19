@@ -503,6 +503,7 @@ declare namespace Deno {
     resize: CustomEvent<BrowserWindowResizeDetail>;
     move: CustomEvent<BrowserWindowMoveDetail>;
     close: Event;
+    load: Event;
     menuclick: CustomEvent<MenuClickDetail>;
     contextmenuclick: CustomEvent<MenuClickDetail>;
   }

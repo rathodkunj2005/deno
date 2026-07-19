@@ -202,6 +202,7 @@ pub const DESKTOP_JS: &str = r#"
   internals.defineEventHandler(BrowserWindowPrototype, "resize");
   internals.defineEventHandler(BrowserWindowPrototype, "move");
   internals.defineEventHandler(BrowserWindowPrototype, "close");
+  internals.defineEventHandler(BrowserWindowPrototype, "load");
   internals.defineEventHandler(BrowserWindowPrototype, "menuclick");
   internals.defineEventHandler(BrowserWindowPrototype, "contextmenuclick");
 
@@ -709,6 +710,12 @@ pub const DESKTOP_JS: &str = r#"
         const ev = await p;
         if (ev == null) break;
         switch (ev.kind) {
+          case "pageLoad": {
+            const target = windows.get(ev.windowId);
+            if (!target) break;
+            target.dispatchEvent(new Event("load"));
+            break;
+          }
           case "appMenuClick": {
             const target = windows.get(ev.windowId);
             if (!target) break;
@@ -1267,6 +1274,15 @@ mod tests {
       DESKTOP_JS.contains("op_desktop_recv_event"),
       "DESKTOP_JS must call op_desktop_recv_event"
     );
+  }
+
+  #[test]
+  fn desktop_js_dispatches_page_load_events() {
+    assert!(DESKTOP_JS.contains(
+      "internals.defineEventHandler(BrowserWindowPrototype, \"load\")"
+    ));
+    let page_load_case = locate_around(DESKTOP_JS, "case \"pageLoad\"");
+    assert!(page_load_case.contains("new Event(\"load\")"));
   }
 
   #[test]

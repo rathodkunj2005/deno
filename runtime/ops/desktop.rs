@@ -118,6 +118,8 @@ pub struct OpenDevtoolsOptions {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum DesktopEvent {
   #[serde(rename_all = "camelCase")]
+  PageLoad { window_id: u32 },
+  #[serde(rename_all = "camelCase")]
   AppMenuClick { window_id: u32, id: String },
   #[serde(rename_all = "camelCase")]
   ContextMenuClick { window_id: u32, id: String },
