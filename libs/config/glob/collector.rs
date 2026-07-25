@@ -31,6 +31,7 @@ pub struct WalkEntry<'a> {
 /// If the walker visits a path that is listed in `ignore`, it skips descending into the directory.
 pub struct FileCollector<TFilter: Fn(WalkEntry) -> bool> {
   file_filter: TFilter,
+  ignore_deno_folder: bool,
   ignore_git_folder: bool,
   ignore_node_modules: bool,
   vendor_folder: Option<PathBuf>,
@@ -41,6 +42,7 @@ impl<TFilter: Fn(WalkEntry) -> bool> FileCollector<TFilter> {
   pub fn new(file_filter: TFilter) -> Self {
     Self {
       file_filter,
+      ignore_deno_folder: false,
       ignore_git_folder: false,
       ignore_node_modules: false,
       vendor_folder: None,
@@ -50,6 +52,11 @@ impl<TFilter: Fn(WalkEntry) -> bool> FileCollector<TFilter> {
 
   pub fn ignore_node_modules(mut self) -> Self {
     self.ignore_node_modules = true;
+    self
+  }
+
+  pub fn ignore_deno_folder(mut self) -> Self {
+    self.ignore_deno_folder = true;
     self
   }
 
@@ -199,6 +206,7 @@ impl<TFilter: Fn(WalkEntry) -> bool> FileCollector<TFilter> {
         let dir_name = dir_name.to_string_lossy().to_lowercase();
 
         match dir_name.as_str() {
+          ".deno" => self.ignore_deno_folder,
           "node_modules" => self.ignore_node_modules,
           ".git" => self.ignore_git_folder,
           _ => false,
@@ -243,6 +251,8 @@ mod test {
     // ├── a.ts
     // ├── b.js
     // ├── child
+    // |   ├── .deno
+    // |   |   └── deno.js
     // |   ├── .git
     // |   |   └── git.js
     // |   ├── node_modules
@@ -270,6 +280,9 @@ mod test {
 
     let node_modules_dir = child_dir_path.join("node_modules");
     create_files(&node_modules_dir, &["node_modules.js"]);
+
+    let deno_dir = child_dir_path.join(".deno");
+    create_files(&deno_dir, &["deno.js"]);
 
     let git_dir = child_dir_path.join(".git");
     create_files(&git_dir, &["git.js"]);
@@ -303,6 +316,7 @@ mod test {
       "b.js",
       "c.tsx",
       "d.jsx",
+      "deno.js",
       "e.mjs",
       "f.mjsx",
       "git.js",
@@ -316,8 +330,9 @@ mod test {
     file_names.sort();
     assert_eq!(file_names, expected);
 
-    // test ignoring the .git and node_modules folder
+    // test ignoring the .deno, .git, and node_modules folders
     let file_collector = file_collector
+      .ignore_deno_folder()
       .ignore_git_folder()
       .ignore_node_modules()
       .set_vendor_folder(Some(vendor_dir.to_path_buf()));
@@ -343,6 +358,7 @@ mod test {
       base: root_dir_path.to_path_buf(),
       include: Some(PathOrPatternSet::new(vec![
         PathOrPattern::Path(root_dir_path.to_path_buf()),
+        PathOrPattern::Path(deno_dir.to_path_buf()),
         PathOrPattern::Path(node_modules_dir.to_path_buf()),
       ])),
       exclude: PathOrPatternSet::new(vec![PathOrPattern::Path(
@@ -356,6 +372,7 @@ mod test {
       "b.js",
       "c.tsx",
       "d.jsx",
+      "deno.js",
       "e.mjs",
       "f.mjsx",
       "node_modules.js",

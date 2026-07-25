@@ -87,7 +87,7 @@ pub struct CollectSpecifiersOptions {
 
 /// Collects module specifiers that satisfy the given predicate as a file path, by recursively walking `include`.
 /// Specifiers that start with http and https are left intact.
-/// Note: This ignores all .git and node_modules folders.
+/// Note: This ignores all .deno, .git, and node_modules folders.
 pub fn collect_specifiers(
   options: CollectSpecifiersOptions,
   predicate: impl Fn(WalkEntry) -> bool,
@@ -133,6 +133,7 @@ pub fn collect_specifiers(
   }
 
   let collected_files = FileCollector::new(predicate)
+    .ignore_deno_folder()
     .ignore_git_folder()
     .ignore_node_modules()
     .set_vendor_folder(vendor_folder)
@@ -336,6 +337,8 @@ mod tests {
     // │   ├── f.mjsx
     // │   ├── .foo.TS
     // │   └── README.md
+    // ├── .deno
+    // │   └── generated.ts
     // ├── c.tsx
     // ├── d.jsx
     // └── ignore
@@ -351,6 +354,9 @@ mod tests {
     let child_dir_path = root_dir_path.join("child");
     let child_dir_files = ["e.mjs", "f.mjsx", ".foo.TS", "README.md"];
     create_files(&child_dir_path, &child_dir_files);
+
+    let deno_dir_path = root_dir_path.join(".deno");
+    create_files(&deno_dir_path, &["generated.ts"]);
 
     let ignore_dir_path = root_dir_path.join("ignore");
     let ignore_dir_files = ["g.d.ts", ".gitignore"];
