@@ -1,0 +1,5 @@
+{
+  "tempDir": true,
+  "args": "install --global --root ./bins --name lifecycle-scripts-simple npm:@denotest/lifecycle-scripts-simple",
+  "output": "[WILDCARD]Ignored build scripts for packages:\n[WILDCARD]npm:@denotest/lifecycle-scripts-simple@1.0.0\n[WILDCARD]Re-run the installation with `--allow-scripts --force` to run build scripts.\n[WILDCARD]"
+}

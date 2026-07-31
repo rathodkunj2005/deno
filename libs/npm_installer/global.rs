@@ -240,19 +240,8 @@ impl<TSys: NpmCacheSys> LifecycleScriptsStrategy
     _ = writeln!(&mut output, "{}", colors::yellow("│"));
     _ = writeln!(
       &mut output,
-      "{}  Lifecycle scripts are only supported when using a `node_modules` directory.",
+      "{}  Re-run the installation with `--allow-scripts --force` to run build scripts.",
       colors::yellow("│")
-    );
-    _ = writeln!(
-      &mut output,
-      "{}  Enable it in your deno config file:",
-      colors::yellow("│")
-    );
-    _ = writeln!(
-      &mut output,
-      "{}  {}",
-      colors::yellow("│"),
-      colors::bold("\"nodeModulesDir\": \"auto\"")
     );
     _ = write!(&mut output, "{}", colors::yellow("╰─"));
 
