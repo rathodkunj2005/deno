@@ -253,3 +253,16 @@ Deno.test("[node/dns] lookup of a missing host reports ENOTFOUND", async () => {
   assertEquals(err.syscall, "getaddrinfo");
   assertEquals(err.hostname, "nonexistent-host.invalid");
 });
+
+Deno.test("[node/dns] resolve with an invalid name reports EBADNAME", async () => {
+  const err = await new Promise<ErrnoException>((resolve) => {
+    dns.resolve4("example..com", (err) => {
+      resolve(err as unknown as ErrnoException);
+    });
+  });
+  assert(err, "expected an error for an invalid domain name");
+  assertEquals(err.code, "EBADNAME");
+  assertEquals(err.errno, undefined);
+  assertEquals(err.syscall, "queryA");
+  assertEquals(err.hostname, "example..com");
+});
