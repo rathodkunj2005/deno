@@ -152,6 +152,9 @@ pub enum NetError {
   #[class("NotFound")]
   #[error("{0}")]
   DnsNotFound(ResolveError),
+  #[class("InvalidData")]
+  #[error("{0}")]
+  DnsInvalidName(ResolveError),
   #[class("NotConnected")]
   #[error("{0}")]
   DnsNotConnected(ResolveError),
@@ -1138,6 +1141,11 @@ pub async fn op_dns_resolve(
 
   let lookup = lookup.map_err(|e| match e.kind() {
     ResolveErrorKind::Proto(ProtoError { kind, .. })
+      if is_invalid_dns_name(kind) =>
+    {
+      NetError::DnsInvalidName(e)
+    }
+    ResolveErrorKind::Proto(ProtoError { kind, .. })
       if matches!(**kind, ProtoErrorKind::NoRecordsFound { .. }) =>
     {
       NetError::DnsNotFound(e)
@@ -1156,6 +1164,15 @@ pub async fn op_dns_resolve(
   })?;
 
   format_dns_records(lookup.records(), record_type)
+}
+
+fn is_invalid_dns_name(kind: &ProtoErrorKind) -> bool {
+  match kind {
+    ProtoErrorKind::DomainNameTooLong(_)
+    | ProtoErrorKind::LabelBytesTooLong(_) => true,
+    ProtoErrorKind::Msg(message) => message.starts_with("Malformed label:"),
+    _ => false,
+  }
 }
 
 fn format_dns_records<'a>(
@@ -1352,6 +1369,16 @@ mod tests {
   use socket2::SockRef;
 
   use super::*;
+
+  #[test]
+  fn classifies_invalid_dns_names() {
+    assert!(is_invalid_dns_name(&ProtoErrorKind::Msg(
+      "Malformed label: ".to_string()
+    )));
+    assert!(is_invalid_dns_name(&ProtoErrorKind::LabelBytesTooLong(64)));
+    assert!(is_invalid_dns_name(&ProtoErrorKind::DomainNameTooLong(256)));
+    assert!(!is_invalid_dns_name(&ProtoErrorKind::NoError));
+  }
 
   #[test]
   fn rdata_to_return_record_a() {
