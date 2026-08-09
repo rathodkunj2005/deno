@@ -34,6 +34,7 @@ const {
   ArrayPrototypeReverse,
   ArrayPrototypeSort,
   Error,
+  ErrorPrototype,
   MathMin,
   MathPow,
   Number,
@@ -435,7 +436,8 @@ class ChannelWrap extends AsyncWrap implements ChannelWrapQuery {
         ) {
           code = codeMap.get("EAI_NODATA")!;
         } else if (
-          ObjectPrototypeIsPrototypeOf(Deno.errors.InvalidData.prototype, e)
+          ObjectPrototypeIsPrototypeOf(ErrorPrototype, e) &&
+          (e as Error).name === "InvalidData"
         ) {
           code = "EBADNAME";
         } else {
