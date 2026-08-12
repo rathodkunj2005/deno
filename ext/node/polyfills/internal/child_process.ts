@@ -1978,7 +1978,11 @@ function spawnSync(
       argv0: argv0 !== command ? argv0 : undefined,
       stdout: toDenoStdio(stdout_),
       stderr: toDenoStdio(stderr_),
-      stdin: stdin_ == "inherit" ? "inherit" : "null",
+      stdin: typeof stdin_ === "number"
+        ? toDenoStdio(stdin_)
+        : stdin_ == "inherit"
+        ? "inherit"
+        : "null",
       uid,
       gid,
       clearEnv: false,

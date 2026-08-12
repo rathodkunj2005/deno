@@ -13,6 +13,7 @@ import {
 } from "@std/assert";
 import * as path from "@std/path";
 import { clearTimeout, setTimeout } from "node:timers";
+import { closeSync, openSync, writeFileSync } from "node:fs";
 
 const { spawn, spawnSync, execFile, execFileSync, ChildProcess } = CP;
 
@@ -566,6 +567,23 @@ Deno.test({
 
 Deno.test("[node/child_process execFileSync] 'inherit' stdout and stderr", () => {
   execFileSync(Deno.execPath(), ["--help"], { stdio: "inherit" });
+});
+
+Deno.test("[node/child_process execFileSync] numeric stdin fd", () => {
+  const file = Deno.makeTempFileSync();
+  writeFileSync(file, "hello from fd");
+  const fd = openSync(file, "r");
+  try {
+    const output = execFileSync(
+      Deno.execPath(),
+      ["eval", "Deno.stdin.readable.pipeTo(Deno.stdout.writable)"],
+      { encoding: "utf8", stdio: [fd, "pipe", "pipe"] },
+    );
+    assertEquals(output, "hello from fd");
+  } finally {
+    closeSync(fd);
+    Deno.removeSync(file);
+  }
 });
 
 Deno.test(
