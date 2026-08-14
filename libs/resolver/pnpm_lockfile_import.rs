@@ -14,6 +14,7 @@
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
+use deno_semver::package::PackageNv;
 use serde_json::Value;
 use yaml_parser::SyntaxError;
 use yaml_parser::ast::AstNode;
@@ -512,8 +513,11 @@ fn build_workspace(
   }
 }
 
-/// Build a sorted list of `dep@version` strings from a pnpm dependency
-/// mapping (e.g. `{ ansi-styles: 4.3.0, color-convert: 2.0.1 }`).
+/// Build a sorted list of resolved `dep@version` package ids from a pnpm
+/// dependency mapping (e.g. `{ ansi-styles: 4.3.0 }`). Aliased entries store
+/// the resolved package id as the value (e.g.
+/// `{ string-width-cjs: string-width@4.2.3 }`), so preserve that id instead of
+/// prefixing it with the alias.
 fn collect_deps(node: Option<MapNode>) -> Vec<String> {
   let Some(map) = node else {
     return Vec::new();
@@ -524,7 +528,11 @@ fn collect_deps(node: Option<MapNode>) -> Vec<String> {
     .filter_map(|(name, value)| {
       let ver = value.into_string()?;
       let ver = strip_peer_suffix(&ver);
-      Some(format!("{}@{}", name, ver))
+      if PackageNv::from_str(ver).is_ok() {
+        Some(ver.to_string())
+      } else {
+        Some(format!("{}@{}", name, ver))
+      }
     })
     .collect();
   out.sort();
@@ -640,6 +648,35 @@ snapshots:
       v["npm"]["chalk@4.1.2"]["dependencies"].as_array().unwrap();
     assert_eq!(chalk_deps[0], "ansi-styles@4.3.0");
     assert_eq!(v["npm"]["ansi-styles@4.3.0"]["integrity"], "sha512-ANSI");
+  }
+
+  #[test]
+  fn preserves_resolved_package_id_for_aliased_nested_deps() {
+    let input = r#"
+lockfileVersion: '9.0'
+
+packages:
+  wrap-ansi@7.0.0:
+    resolution: {integrity: sha512-WRAP}
+  string-width@4.2.3:
+    resolution: {integrity: sha512-WIDTH}
+  '@scope/pkg@1.2.3':
+    resolution: {integrity: sha512-SCOPED}
+
+snapshots:
+  wrap-ansi@7.0.0:
+    dependencies:
+      string-width-cjs: string-width@4.2.3
+      scoped-alias: '@scope/pkg@1.2.3'
+  string-width@4.2.3: {}
+  '@scope/pkg@1.2.3': {}
+"#;
+    let out = pnpm_lock_to_deno_lock_v5(input).unwrap();
+    let v: Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(
+      v["npm"]["wrap-ansi@7.0.0"]["dependencies"],
+      serde_json::json!(["@scope/pkg@1.2.3", "string-width@4.2.3"])
+    );
   }
 
   #[test]
