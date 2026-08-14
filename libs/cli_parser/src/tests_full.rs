@@ -5047,6 +5047,7 @@ fn compile() {
         bundle: false,
         app_name: None,
         minify: false,
+        keep_names: false,
         exclude_unused_npm: false,
         engine: Default::default(),
       }),
@@ -5179,6 +5180,7 @@ fn compile_watch_with_no_clear_screen() {
         bundle: false,
         app_name: None,
         minify: false,
+        keep_names: false,
         exclude_unused_npm: false,
         engine: Default::default(),
       }),
@@ -5216,6 +5218,7 @@ fn compile_with_flags() {
         bundle: false,
         app_name: None,
         minify: false,
+        keep_names: false,
         exclude_unused_npm: false,
         engine: Default::default(),
       }),
@@ -8187,6 +8190,7 @@ fn preload_flag_test() {
         bundle: false,
         app_name: None,
         minify: false,
+        keep_names: false,
         exclude_unused_npm: false,
         engine: Default::default(),
       }),
@@ -9211,6 +9215,7 @@ fn tier1_compile_bundle_flags() {
     "compile",
     "--bundle",
     "--minify",
+    "--keep-names",
     "--app-name=MyApp",
     "--exclude-unused-npm",
     "main.ts"
@@ -9221,12 +9226,18 @@ fn tier1_compile_bundle_flags() {
   };
   assert!(c.bundle);
   assert!(c.minify);
+  assert!(c.keep_names);
   assert_eq!(c.app_name, Some("MyApp".to_string()));
   assert!(c.exclude_unused_npm);
 
   // --minify requires --bundle.
   assert!(
     flags_from_vec(svec!["deno", "compile", "--minify", "main.ts"]).is_err()
+  );
+  // --keep-names requires --bundle.
+  assert!(
+    flags_from_vec(svec!["deno", "compile", "--keep-names", "main.ts"])
+      .is_err()
   );
 }
 

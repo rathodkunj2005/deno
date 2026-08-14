@@ -1831,6 +1831,11 @@ pub static COMPILE_SUBCOMMAND: CommandDef = CommandDef {
       .set_true()
       .requires(&["bundle"])
 .help("Experimental. Minify the bundled output. Only meaningful with --bundle.\n  Reduces both the embedded bundle size and runtime memory use, at the cost of less readable stack traces."),
+    ArgDef::new("keep-names")
+      .long("keep-names")
+      .set_true()
+      .requires(&["bundle"])
+.help("Experimental. Preserve function and class names in the bundled output. Only meaningful with --bundle."),
     ArgDef::new("app-name")
       .long("app-name")
       .action(ArgAction::Set)
