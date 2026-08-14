@@ -524,12 +524,29 @@ fn collect_deps(node: Option<MapNode>) -> Vec<String> {
     .filter_map(|(name, value)| {
       let ver = value.into_string()?;
       let ver = strip_peer_suffix(&ver);
-      Some(format!("{}@{}", name, ver))
+      Some(pnpm_dependency_id(&name, ver))
     })
     .collect();
   out.sort();
   out.dedup();
   out
+}
+
+/// Resolve a pnpm dependency entry to the package id stored in deno.lock.
+///
+/// Aliased dependencies use the shape `alias: package@version`. The package
+/// id must use the resolved package name rather than the alias, otherwise the
+/// version portion is not valid semver (for example
+/// `string-width-cjs@string-width@4.2.3`).
+fn pnpm_dependency_id(name: &str, version: &str) -> String {
+  if let Some((package_name, version)) = version.rsplit_once('@')
+    && !package_name.is_empty()
+    && version.chars().next().is_some_and(|c| c.is_ascii_digit())
+  {
+    format!("{}@{}", package_name, version)
+  } else {
+    format!("{}@{}", name, version)
+  }
 }
 
 /// In pnpm v6 the keys in `packages` and reference paths are prefixed with
@@ -640,6 +657,29 @@ snapshots:
       v["npm"]["chalk@4.1.2"]["dependencies"].as_array().unwrap();
     assert_eq!(chalk_deps[0], "ansi-styles@4.3.0");
     assert_eq!(v["npm"]["ansi-styles@4.3.0"]["integrity"], "sha512-ANSI");
+  }
+
+  #[test]
+  fn resolves_aliased_nested_deps() {
+    let input = r#"
+lockfileVersion: '9.0'
+
+packages:
+  cli@1.0.0:
+    resolution: {integrity: sha512-CLI}
+  string-width@4.2.3:
+    resolution: {integrity: sha512-WIDTH}
+
+snapshots:
+  cli@1.0.0:
+    dependencies:
+      string-width-cjs: string-width@4.2.3
+  string-width@4.2.3: {}
+"#;
+    let out = pnpm_lock_to_deno_lock_v5(input).unwrap();
+    let v: Value = serde_json::from_str(&out).unwrap();
+    let deps = v["npm"]["cli@1.0.0"]["dependencies"].as_array().unwrap();
+    assert_eq!(deps, &["string-width@4.2.3"]);
   }
 
   #[test]
